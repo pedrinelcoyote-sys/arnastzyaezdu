@@ -20,7 +20,7 @@ const CFG = {
   enchantAttr:  [151],       // attrtype 151 = Daño de ataque contra jefes
   enchantApply: [],
   targetValue:  5,           // valor exacto ('' = cualquiera)
-  targetName:   '',          // parte del nombre ('' = cualquiera)
+  targetName:   'lagr',          // parte del nombre ('' = cualquiera)
 };
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
