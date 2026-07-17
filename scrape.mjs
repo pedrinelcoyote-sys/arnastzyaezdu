@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// metin2alerts scraper — corre en GitHub Actions con navegador real (Playwright).
+// scraper — corre en GitHub Actions con navegador real (Playwright).
 // Cloudflare lo resuelve el propio Chromium; el flujo challenge→items va en el
 // MISMO origen (sin CORS, sin proxy, sin créditos). Filtra según SEARCH_CONFIGS,
 // notifica por Telegram lo nuevo y escribe snapshot.json (lo lee la web items2.php)
@@ -38,9 +38,10 @@ const SEARCH_CONFIGS = [
   { enabled: true, type: 4, subtype: 3, name: 'Talis 50',                   targetName: 'Talismán hielo',         required: [{ id: 53, value: 50 }] },
   // GUANTES ACCESORIOS (type 4, subtype 5)
   { enabled: true, type: 4, subtype: 5, name: 'Guantes 5-12',              targetName: 'Guantes de poder',       required: [{ id: 151, value: 5 }, { id: 6, value: 12 }] },
-  // ARMAS (type 2 en esta tienda — subtype: 0=espada, 1=daga, 2=arco, 3=dos manos)
-  { enabled: true, type: 2, subtype: 2, name: 'Viento Negro 50',           targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] },
-  { enabled: true, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+',        targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
+  // ARMAS (type 2 — subtype: 0=espada, 1=daga, 2=arco, 3=dos manos)
+  //   OJO: las armas dependen del JOB (clase). Ninja (job 1) = dagas y arcos.
+  { enabled: true, job: 1, type: 2, subtype: 2, name: 'Viento Negro 50',    targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] },
+  { enabled: true, job: 1, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+', targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
   // PENDIENTES (type 4, subtype 1)
   { enabled: true, type: 4, subtype: 1, name: 'Pendient. de esmeralda 50', targetName: 'Pendiente de esmeralda', required: [{ id: 53, value: 50 }] },
 ];
@@ -265,8 +266,9 @@ async function sendTelegram(text) {
   // Pares tipo:subtype únicos a consultar
   const pairMap = {};
   for (const c of active) {
-    const key = `${c.type}:${c.subtype}`;
-    if (!pairMap[key]) pairMap[key] = { key, serverId: SERVER_ID, job: JOB, type: c.type, subtype: c.subtype, locale: LOCALE };
+    const job = c.job ?? JOB;
+    const key = `${job}:${c.type}:${c.subtype}`;
+    if (!pairMap[key]) pairMap[key] = { key, serverId: SERVER_ID, job, type: c.type, subtype: c.subtype, locale: LOCALE };
   }
   const pairs = Object.values(pairMap);
 
@@ -306,7 +308,7 @@ async function sendTelegram(text) {
   // Filtrar cada búsqueda contra su par
   const matches = [];
   for (const cfg of active) {
-    const items = itemsByPair[`${cfg.type}:${cfg.subtype}`] || [];
+    const items = itemsByPair[`${cfg.job ?? JOB}:${cfg.type}:${cfg.subtype}`] || [];
     for (const it of items) {
       const { ok, matched } = itemMatchesSearch(it, cfg);
       if (!ok) continue;
