@@ -43,7 +43,7 @@ const SEARCH_CONFIGS = [
   { enabled: true, job: 1, type: 2, subtype: 2, name: 'Viento Negro 50',    targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] },
   { enabled: true, job: 1, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+', targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
   // PENDIENTES (type 4, subtype 1)
-  { enabled: true, type: 4, subtype: 3, name: 'Pendient. de esmeralda 50', targetName: 'Pendientes de esmeralda', required: [{ id: 53, value: 50 }] },
+  { enabled: true, type: 4, subtype: 3, name: 'Pendient. de esmeralda',    targetName: 'esmeralda',              required: [{ id: 53, value: 50 }] }, // ← ajusta 'required' al bonus que buscas (ver nota)
 ];
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
