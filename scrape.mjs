@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// scraper — corre en GitHub Actions con navegador real (Playwright).
+// metin2alerts scraper — corre en GitHub Actions con navegador real (Playwright).
 // Cloudflare lo resuelve el propio Chromium; el flujo challenge→items va en el
 // MISMO origen (sin CORS, sin proxy, sin créditos). Filtra según SEARCH_CONFIGS,
 // notifica por Telegram lo nuevo y escribe snapshot.json (lo lee la web items2.php)
@@ -27,23 +27,23 @@ const SEARCH_CONFIGS = [
   { enabled: true, type: 4, subtype: 2, name: 'Collar DCJ 5%',              targetName: 'Collar Lagr',            required: [{ id: 151, value: 5 }] },
   { enabled: true, type: 4, subtype: 2, name: 'Collar de Jade',             targetName: 'Collar de Jade', matchMode: 'any', required: [{ id: 151, min: 1, max: 5 }, { id: 214, min: 1, max: 5 }] },
   // CASCOS / CAPUCHAS (type 1, subtype 5)
-  { enabled: true, type: 1, subtype: 5, name: 'Capucha Dragón DM VT',       targetName: 'Capucha de dragón',      required: [{ id: 22, value: 20 }, { id: 38, value: 15 }] },
-  { enabled: true, type: 1, subtype: 5, name: 'Capucha Dragón - VA 8%',     targetName: 'Capucha de dragón',      required: [{ id: 7, min: 8, max: 8 }] },
-  { enabled: true, type: 1, subtype: 5, name: 'Capucha Dragón - ATQ 50',    targetName: 'Capucha de dragón',      required: [{ id: 53, value: 50 }] },
+  { enabled: true, type: 3, subtype: 1, name: 'Capucha Dragón DM VT',       targetName: 'Capucha de dragón',      required: [{ id: 22, value: 20 }, { id: 38, value: 15 }] },
+  { enabled: true, type: 3, subtype: 1, name: 'Capucha Dragón - VA 8%',     targetName: 'Capucha de dragón',      required: [{ id: 7, min: 8, max: 8 }] },
+  { enabled: true, type: 3, subtype: 1, name: 'Capucha Dragón - ATQ 50',    targetName: 'Capucha de dragón',      required: [{ id: 53, value: 50 }] },
   // BRAZALETES (type 4, subtype 0)
   { enabled: true, type: 4, subtype: 0, name: 'Braza 35-50 P HP',           targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, min: 35, max: 50 }, { id: 16, value: 10 }, { id: 23, value: 10 }] },
   { enabled: true, type: 4, subtype: 0, name: 'Braza P50',                  targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }, { id: 16, value: 10 }] },
   { enabled: true, type: 4, subtype: 0, name: 'Braza 50',                   targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }] },
   // ANILLOS / TALISMANES (type 4, subtype 3)
-  { enabled: true, type: 4, subtype: 3, name: 'Talis 50',                   targetName: 'Talismán hielo',         required: [{ id: 53, value: 50 }] },
+  { enabled: true, type: 4, subtype: 5, name: 'Talis 50',                   targetName: 'Talismán hielo',         required: [{ id: 53, value: 50 }] },
   // GUANTES ACCESORIOS (type 4, subtype 5)
-  { enabled: true, type: 4, subtype: 5, name: 'Guantes 5-12',              targetName: 'Guantes de poder',       required: [{ id: 151, value: 5 }, { id: 6, value: 12 }] },
+  { enabled: true, type: 3, subtype: 3, name: 'Guantes 5-12',              targetName: 'Guantes de poder',       required: [{ id: 151, value: 5 }, { id: 6, value: 12 }] },
   // ARMAS (type 2 — subtype: 0=espada, 1=daga, 2=arco, 3=dos manos)
   //   OJO: las armas dependen del JOB (clase). Ninja (job 1) = dagas y arcos.
   { enabled: true, job: 1, type: 2, subtype: 2, name: 'Viento Negro 50',    targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] },
   { enabled: true, job: 1, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+', targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
   // PENDIENTES (type 4, subtype 1)
-  { enabled: true, type: 4, subtype: 1, name: 'Pendient. de esmeralda 50', targetName: 'Pendiente de esmeralda', required: [{ id: 53, value: 50 }] },
+  { enabled: true, type: 4, subtype: 3, name: 'Pendient. de esmeralda 50', targetName: 'Pendientes de esmeralda', required: [{ id: 53, value: 50 }] },
 ];
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
