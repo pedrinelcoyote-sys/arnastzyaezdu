@@ -1,0 +1,51 @@
+name: arnastzyaezdu scrape
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias + Chromium + xvfb
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y xvfb
+
+      - name: Ejecutar scraper (headful bajo pantalla virtual)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: xvfb-run -a node scrape.mjs
+
+      - name: Guardar snapshot y estado de notificados
+        if: always()
+        run: |
+          git config user.name  "metin2-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add snapshot.json notified.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "snapshot $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "sin cambios que guardar"
+          fi
