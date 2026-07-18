@@ -50,6 +50,10 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID   || '';
 const NOTIFIED_FILE      = 'notified.json';
 const SNAPSHOT_FILE      = 'snapshot.json';
+const HEALTH_FILE        = 'health.json';   // estado para el vigilante (fallos seguidos)
+
+function readHealth() { try { return JSON.parse(fs.readFileSync(HEALTH_FILE, 'utf8')); } catch { return { fails: 0 }; } }
+function writeHealth(h) { try { fs.writeFileSync(HEALTH_FILE, JSON.stringify(h)); } catch {} }
 
 // ── stat_map: attrId → plantilla legible ─────────────────────────────────────
 let STAT_MAP = {};
@@ -318,6 +322,7 @@ async function getWebshareProxies(token) {
   };
 
   let itemsByPair = {}, names = {};
+  const attempts = [];  // proxies probados y su resultado (para el aviso de Telegram)
   for (const proxy of candidates) {
     const label = proxy ? proxy.server : 'directo';
     let browser = null;
@@ -337,20 +342,50 @@ async function getWebshareProxies(token) {
       if (tot > 0) {
         itemsByPair = decoded;
         if (res.namesB64) { try { names = decodeNames(Buffer.from(res.namesB64, 'base64')); } catch { names = {}; } }
+        attempts.push({ ip: label, r: `OK (${tot} items)` });
         console.log(`✓ proxy OK: ${label}`);
         await browser.close();
         break;
       }
+      attempts.push({ ip: label, r: '0 items' });
       console.log(`· proxy sin items: ${label}`);
     } catch (e) {
-      console.log(`· proxy falló (${label}): ${(e.message || e).toString().slice(0, 70)}`);
+      const em = (e.message || e).toString().slice(0, 70);
+      attempts.push({ ip: label, r: 'error: ' + em });
+      console.log(`· proxy falló (${label}): ${em}`);
     } finally {
       if (browser) { try { await browser.close(); } catch {} }
     }
   }
 
   const totalItems = Object.values(itemsByPair).reduce((s, arr) => s + arr.length, 0);
-  if (totalItems === 0) { console.error('❌ 0 items — todos los proxies fallaron o están bloqueados (revisa el secret PROXIES)'); process.exit(1); }
+
+  // ── Vigilante: cuenta fallos seguidos (health.json) y avisa por Telegram ────
+  const health = readHealth();
+  const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  if (totalItems === 0) {
+    console.error('❌ 0 items — todos los proxies fallaron o están bloqueados');
+    health.fails = (health.fails || 0) + 1;
+    health.lastFail = nowUTC;
+    // Avisa al 2º fallo seguido, y luego cada 24 (~6 h a 15 min) mientras siga caído (sin spam)
+    if (health.fails === 2 || (health.fails > 2 && health.fails % 24 === 0)) {
+      const lines = attempts.length ? attempts.map(a => `   • ${a.ip} → ${a.r}`).join('\n') : '   • (sin proxies configurados)';
+      await sendTelegram(
+        `🔴 <b>SCRAPER CAÍDO</b> · ${health.fails} fallos seguidos\n\n` +
+        `🕒 <b>Hora:</b> ${nowUTC}\n` +
+        `📊 <b>Proxies disponibles:</b> ${proxyList.length}\n` +
+        `🌐 <b>Intentos (IP → resultado):</b>\n${lines}\n\n` +
+        `ℹ️ 0 items en todas las categorías → probable bloqueo de las IPs de los proxies (o cambio en la web).`
+      );
+    }
+    writeHealth(health);
+    process.exit(1);
+  }
+  // Éxito: si venía de una caída ya avisada, manda "recuperado"
+  if ((health.fails || 0) >= 2) {
+    await sendTelegram(`🟢 <b>SCRAPER RECUPERADO</b>\n🕒 ${nowUTC}\nTras ${health.fails} fallos seguidos, vuelve a funcionar.`);
+  }
+  writeHealth({ fails: 0, lastOk: nowUTC });
 
   // Filtrar cada búsqueda contra su par
   const matches = [];
