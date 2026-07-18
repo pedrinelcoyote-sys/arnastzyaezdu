@@ -2,8 +2,13 @@ name: arnastzyaezdu scrape
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
+    inputs:
+      jitter:
+        description: 'Espera aleatoria antes de ejecutar (lo usa cron-job.org)'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -15,15 +20,21 @@ concurrency:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      # Timing NO exacto: espera aleatoria 0-4 min (en cron programado o si cron-job.org
+      # manda inputs.jitter=true). En "Run workflow" a mano es instantáneo.
+      - name: Jitter aleatorio
+        if: github.event_name == 'schedule' || github.event.inputs.jitter == 'true'
+        run: sleep $(( RANDOM % 240 ))
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Instalar dependencias + Chromium + xvfb
         run: |
@@ -35,6 +46,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WEBSHARE_TOKEN: ${{ secrets.WEBSHARE_TOKEN }}
+          PROXIES: ${{ secrets.PROXIES }}
         run: xvfb-run -a node scrape.mjs
 
       - name: Guardar snapshot y estado de notificados
