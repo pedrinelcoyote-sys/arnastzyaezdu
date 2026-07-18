@@ -24,26 +24,26 @@ const LOCALE    = 'es';
 //   targetName: parte del nombre del item ('' = cualquiera)
 const SEARCH_CONFIGS = [
   // COLLARES (type 4, subtype 2)
-  { enabled: true, type: 4, subtype: 2, name: 'Collar DCJ 5%',              targetName: 'Collar Lagr',            required: [{ id: 151, value: 5 }] },
-  { enabled: true, type: 4, subtype: 2, name: 'Collar de Jade',             targetName: 'Collar de Jade', matchMode: 'any', required: [{ id: 151, min: 1, max: 5 }, { id: 214, min: 1, max: 5 }] },
+  { enabled: true,  type: 4, subtype: 2, name: 'Collar DCJ 5%',              targetName: 'Collar Lagr',            required: [{ id: 151, value: 5 }] },
+  { enabled: false, type: 4, subtype: 2, name: 'Collar de Jade',             targetName: 'Collar de Jade', matchMode: 'any', required: [{ id: 151, min: 1, max: 5 }, { id: 214, min: 1, max: 5 }] },
   // CASCOS / CAPUCHAS (type 1, subtype 5)
-  { enabled: true, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón DM VT',       targetName: 'Capucha de dragón',      required: [{ id: 22, value: 20 }, { id: 38, value: 15 }] },
-  { enabled: true, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón - VA 8%',     targetName: 'Capucha de dragón',      required: [{ id: 7, min: 8, max: 8 }] },
-  { enabled: true, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón - ATQ 50',    targetName: 'Capucha de dragón',      required: [{ id: 53, value: 50 }] },
+  { enabled: false, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón DM VT',       targetName: 'Capucha de dragón',      required: [{ id: 22, value: 20 }, { id: 38, value: 15 }] },
+  { enabled: false, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón - VA 8%',     targetName: 'Capucha de dragón',      required: [{ id: 7, min: 8, max: 8 }] },
+  { enabled: false, job: 1, type: 3, subtype: 1, name: 'Capucha Dragón - ATQ 50',    targetName: 'Capucha de dragón',      required: [{ id: 53, value: 50 }] },
   // BRAZALETES (type 4, subtype 0)
-  { enabled: true, type: 4, subtype: 0, name: 'Braza 35-50 P HP',           targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, min: 35, max: 50 }, { id: 16, value: 10 }, { id: 23, value: 10 }] },
-  { enabled: true, type: 4, subtype: 0, name: 'Braza P50',                  targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }, { id: 16, value: 10 }] },
-  { enabled: true, type: 4, subtype: 0, name: 'Braza 50',                   targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }] },
+  { enabled: false, type: 4, subtype: 0, name: 'Braza 35-50 P HP',           targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, min: 35, max: 50 }, { id: 16, value: 10 }, { id: 23, value: 10 }] },
+  { enabled: false, type: 4, subtype: 0, name: 'Braza P50',                  targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }, { id: 16, value: 10 }] },
+  { enabled: false, type: 4, subtype: 0, name: 'Braza 50',                   targetName: 'Brazalete Lagr. Cielo',  required: [{ id: 53, value: 50 }] },
   // ANILLOS / TALISMANES (type 4, subtype 3)
-  { enabled: true, type: 4, subtype: 5, name: 'Talis 50',                   targetName: 'Talismán hielo',         required: [{ id: 53, value: 50 }] },
+  { enabled: false, type: 4, subtype: 5, name: 'Talis 50',                   targetName: 'Talismán hielo',         required: [{ id: 53, value: 50 }] },
   // GUANTES ACCESORIOS (type 4, subtype 5)
-  { enabled: true, type: 3, subtype: 3, name: 'Guantes 5-12',              targetName: 'Guantes de poder',       required: [{ id: 151, value: 5 }, { id: 6, value: 12 }] },
+  { enabled: false, type: 3, subtype: 3, name: 'Guantes 5-12',              targetName: 'Guantes de poder',       required: [{ id: 151, value: 5 }, { id: 6, value: 12 }] },
   // ARMAS (type 2 — subtype: 0=espada, 1=daga, 2=arco, 3=dos manos)
   //   OJO: las armas dependen del JOB (clase). Ninja (job 1) = dagas y arcos.
-  { enabled: true, job: 1, type: 3, subtype: 0, name: 'Viento Negro 50',    targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] }, // armadura Ninja (type 3 sub 0, job 1)
-  { enabled: true, job: 1, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+', targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
+  { enabled: false, job: 1, type: 3, subtype: 0, name: 'Viento Negro 50',    targetName: 'Viento Negro',           required: [{ id: 53, value: 50 }] }, // armadura Ninja (type 3 sub 0, job 1)
+  { enabled: false, job: 1, type: 2, subtype: 1, name: 'D.Zodíaco M40+ P5+', targetName: 'Daga de zodíaco',        required: [{ id: 72, min: 40 }, { id: 16, min: 5 }] },
   // PENDIENTES (type 4, subtype 1)
-  { enabled: true, type: 4, subtype: 3, name: 'Pendient. de esmeralda',    targetName: 'esmeralda',              required: [{ id: 53, value: 50 }] }, // ← ajusta 'required' al bonus que buscas (ver nota)
+  { enabled: false, type: 4, subtype: 3, name: 'Pendient. de esmeralda',    targetName: 'esmeralda',              required: [{ id: 53, value: 50 }] }, // ← ajusta 'required' al bonus que buscas (ver nota)
 ];
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -258,6 +258,22 @@ async function sendTelegram(text) {
   return res.ok;
 }
 
+// ── Webshare API: lista de proxies actualizada automáticamente ───────────────
+// Con WEBSHARE_TOKEN, el script coge tus proxies frescos en cada ejecución (se adapta
+// solo cuando Webshare los rota). El token es la API Key del dashboard (no la del proxy).
+async function getWebshareProxies(token) {
+  try {
+    const r = await fetch('https://proxy.webshare.io/api/v2/proxy/list/?mode=direct&page=1&page_size=100', {
+      headers: { Authorization: `Token ${token}` },
+    });
+    if (!r.ok) { console.log('Webshare API HTTP ' + r.status); return []; }
+    const j = await r.json();
+    return (j.results || [])
+      .filter(p => p.valid !== false)
+      .map(p => ({ server: `http://${p.proxy_address}:${p.port}`, username: p.username, password: p.password }));
+  } catch (e) { console.log('Webshare API error: ' + (e.message || e)); return []; }
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 (async () => {
   const active = SEARCH_CONFIGS.filter(c => c.enabled !== false);
@@ -272,38 +288,69 @@ async function sendTelegram(text) {
   }
   const pairs = Object.values(pairMap);
 
-  const browser = await chromium.launch({
-    headless: false,
-    args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=angle', '--use-angle=swiftshader', '--disable-blink-features=AutomationControlled'],
-  });
-  const context = await browser.newContext({ locale: 'es-ES', viewport: { width: 1280, height: 720 } });
-  await context.addInitScript(() => {
-    const spoof = { 37445: 'Intel Inc.', 37446: 'Intel(R) Iris(R) Xe Graphics' };
+  // Proxies (secret PROXIES: uno por línea o coma, formato http://user:pass@host:port).
+  // Imprescindibles: metin2alerts bloquea las IPs de datacenter de GitHub/Azure, no las de
+  // otros proveedores (ej. Webshare). Con Playwright + 1 proxy fijo, la sesión (IP+cookies)
+  // se mantiene en las dos peticiones (challenge + items).
+  const parseProxy = u => {
+    const m = u.trim().match(/^https?:\/\/(?:([^:@]+):([^@]+)@)?([^:/]+):(\d+)$/);
+    return m ? { server: `http://${m[3]}:${m[4]}`, username: m[1] || undefined, password: m[2] || undefined } : null;
+  };
+  // 1º intenta la API de Webshare (auto-actualizada); si no, usa el secret PROXIES.
+  let proxyList = [];
+  if (process.env.WEBSHARE_TOKEN) proxyList = await getWebshareProxies(process.env.WEBSHARE_TOKEN);
+  if (!proxyList.length) proxyList = (process.env.PROXIES || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean).map(parseProxy).filter(Boolean);
+  console.log(`proxies disponibles: ${proxyList.length}`);
+  // Orden ALEATORIO en cada ejecución → reparte la carga entre todos los proxies
+  // (cada IP se usa menos → menos riesgo de que la marquen) y da resiliencia si uno cae.
+  const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+  const candidates = proxyList.length ? shuffle(proxyList) : [null]; // [null] = directo (fallará en GitHub)
+
+  const spoofScript = () => {
+    const s = { 37445: 'Intel Inc.', 37446: 'Intel(R) Iris(R) Xe Graphics' };
     for (const proto of [WebGLRenderingContext.prototype, window.WebGL2RenderingContext && WebGL2RenderingContext.prototype].filter(Boolean)) {
       const orig = proto.getParameter;
-      proto.getParameter = function (p) { return spoof[p] ?? orig.call(this, p); };
+      proto.getParameter = function (p) { return s[p] ?? orig.call(this, p); };
     }
     Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
     Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-  });
-  const page = await context.newPage();
+  };
 
   let itemsByPair = {}, names = {};
-  try {
-    await page.goto(BASE + '/' + LOCALE, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await page.waitForTimeout(8000);
-    const res = await fetchInPage(page, BASE, pairs);
-    for (const [k, b64] of Object.entries(res.itemsByPair)) {
-      itemsByPair[k] = b64 ? decodeItemList(Buffer.from(b64, 'base64')) : [];
+  for (const proxy of candidates) {
+    const label = proxy ? proxy.server : 'directo';
+    let browser = null;
+    try {
+      browser = await chromium.launch({
+        headless: false, proxy: proxy || undefined,
+        args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-gl=angle', '--use-angle=swiftshader', '--disable-blink-features=AutomationControlled'],
+      });
+      const context = await browser.newContext({ locale: 'es-ES', viewport: { width: 1280, height: 720 } });
+      await context.addInitScript(spoofScript);
+      const page = await context.newPage();
+      await page.goto(BASE + '/' + LOCALE, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await page.waitForTimeout(8000);
+      const res = await fetchInPage(page, BASE, pairs);
+      const decoded = {}; let tot = 0;
+      for (const [k, b64] of Object.entries(res.itemsByPair)) { decoded[k] = b64 ? decodeItemList(Buffer.from(b64, 'base64')) : []; tot += decoded[k].length; }
+      if (tot > 0) {
+        itemsByPair = decoded;
+        if (res.namesB64) { try { names = decodeNames(Buffer.from(res.namesB64, 'base64')); } catch { names = {}; } }
+        console.log(`✓ proxy OK: ${label}`);
+        await browser.close();
+        break;
+      }
+      console.log(`· proxy sin items: ${label}`);
+    } catch (e) {
+      console.log(`· proxy falló (${label}): ${(e.message || e).toString().slice(0, 70)}`);
+    } finally {
+      if (browser) { try { await browser.close(); } catch {} }
     }
-    if (res.namesB64) { try { names = decodeNames(Buffer.from(res.namesB64, 'base64')); } catch { names = {}; } }
-  } finally {
-    await browser.close();
   }
 
   const totalItems = Object.values(itemsByPair).reduce((s, arr) => s + arr.length, 0);
-  if (totalItems === 0) { console.error('❌ 0 items — posible bloqueo en la IP del runner'); process.exit(1); }
+  if (totalItems === 0) { console.error('❌ 0 items — todos los proxies fallaron o están bloqueados (revisa el secret PROXIES)'); process.exit(1); }
 
   // Filtrar cada búsqueda contra su par
   const matches = [];
