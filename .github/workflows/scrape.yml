@@ -55,7 +55,7 @@ jobs:
         run: |
           git config user.name  "metin2-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add snapshot.json notified.json 2>/dev/null || true
+          git add snapshot.json notified.json health.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "snapshot $(date -u +%FT%TZ)"
             git push
