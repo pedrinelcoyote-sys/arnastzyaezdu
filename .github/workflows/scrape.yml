@@ -9,6 +9,10 @@ on:
         description: 'Espera aleatoria antes de ejecutar (lo usa cron-job.org)'
         required: false
         default: 'false'
+      force:
+        description: 'Ignorar el regulador de ritmo y ejecutar ya'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -22,12 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      # Timing NO exacto: espera aleatoria 0-4 min (en cron programado o si cron-job.org
-      # manda inputs.jitter=true). En "Run workflow" a mano es instantáneo.
-      - name: Jitter aleatorio
-        if: github.event_name == 'schedule' || github.event.inputs.jitter == 'true'
-        run: sleep $(( RANDOM % 240 ))
-
       - name: Checkout
         uses: actions/checkout@v5
 
@@ -36,13 +34,35 @@ jobs:
         with:
           node-version: 22
 
+      # Regulador de ritmo: decide EJECUTAR o SALTAR según cuántas cuentas Webshare
+      # haya en el secret (tokens separados por comas). Ligero, sin navegador.
+      # Añadir una cuenta nueva = solo sumar su token → el intervalo se acorta solo.
+      - name: Regulador de ritmo (throttle)
+        id: gate
+        env:
+          WEBSHARE_TOKEN: ${{ secrets.WEBSHARE_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            echo "force=true → ejecutar"; echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            node gate.mjs
+          fi
+
+      # Timing NO exacto: espera aleatoria 0-4 min (en cron programado o si cron-job.org
+      # manda inputs.jitter=true). En "Run workflow" a mano es instantáneo.
+      - name: Jitter aleatorio
+        if: steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || github.event.inputs.jitter == 'true')
+        run: sleep $(( RANDOM % 240 ))
+
       - name: Instalar dependencias + Chromium + xvfb
+        if: steps.gate.outputs.run == 'true'
         run: |
           npm install
           npx playwright install --with-deps chromium
           sudo apt-get install -y xvfb
 
       - name: Ejecutar scraper (headful bajo pantalla virtual)
+        if: steps.gate.outputs.run == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -51,11 +71,11 @@ jobs:
         run: xvfb-run -a node scrape.mjs
 
       - name: Guardar snapshot y estado de notificados
-        if: always()
+        if: steps.gate.outputs.run == 'true' && always()
         run: |
           git config user.name  "metin2-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add snapshot.json notified.json health.json 2>/dev/null || true
+          git add snapshot.json notified.json health.json names_cache.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "snapshot $(date -u +%FT%TZ)"
             git push
