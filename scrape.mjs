@@ -51,9 +51,26 @@ const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID   || '';
 const NOTIFIED_FILE      = 'notified.json';
 const SNAPSHOT_FILE      = 'snapshot.json';
 const HEALTH_FILE        = 'health.json';   // estado para el vigilante (fallos seguidos)
+const NAMES_CACHE        = 'names_cache.json'; // caché de nombres (se refrescan 1 vez/día)
 
 function readHealth() { try { return JSON.parse(fs.readFileSync(HEALTH_FILE, 'utf8')); } catch { return { fails: 0 }; } }
 function writeHealth(h) { try { fs.writeFileSync(HEALTH_FILE, JSON.stringify(h)); } catch {} }
+function saveNamesCache(names) { try { fs.writeFileSync(NAMES_CACHE, JSON.stringify({ ts: Date.now(), names })); } catch {} }
+
+// Bloqueo estilo adblock: corta imágenes/fuentes/vídeo + dominios de anuncios/analytics.
+// Es lo que hace un usuario normal con adblock → ahorra ancho de banda SIN parecer bot.
+const AD_HOSTS = /doubleclick|googlesyndication|googletagmanager|google-analytics|adtrafficquality|googleadservices|fundingchoices|adservice|scorecardresearch|adsystem/i;
+async function applyAdblock(page) {
+  try {
+    await page.route('**/*', route => {
+      const req = route.request();
+      const host = (() => { try { return new URL(req.url()).host; } catch { return ''; } })();
+      if (['image', 'font', 'media'].includes(req.resourceType())) return route.abort();
+      if (AD_HOSTS.test(host)) return route.abort();
+      return route.continue();
+    });
+  } catch { /* si falla el route, seguimos sin bloqueo */ }
+}
 
 // ── stat_map: attrId → plantilla legible ─────────────────────────────────────
 let STAT_MAP = {};
@@ -138,8 +155,8 @@ function decodeNames(body) {
 // ── Flujo dentro del navegador: un challenge NUEVO por consulta ──────────────
 // El token del challenge es de un solo uso, así que cada /api/items necesita su
 // propio challenge+firma. Reutilizamos la misma clave EC (basta con re-firmar).
-async function fetchInPage(page, base, pairs) {
-  return await page.evaluate(async ({ base, pairs }) => {
+async function fetchInPage(page, base, pairs, fetchNames = true) {
+  return await page.evaluate(async ({ base, pairs, fetchNames }) => {
     const enc = new TextEncoder();
     const b64u = bytes => { let s = ''; for (const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); };
     const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (const b of u) s += String.fromCharCode(b); return btoa(s); };
@@ -192,13 +209,15 @@ async function fetchInPage(page, base, pairs) {
     }
 
     let namesB64 = '';
-    try {
-      const nmRes = await fetch(base + '/data/item_names/' + pairs[0].locale + '.pbf', { credentials: 'include' });
-      if (nmRes.ok) namesB64 = b64(await nmRes.arrayBuffer());
-    } catch { /* opcional */ }
+    if (fetchNames) {
+      try {
+        const nmRes = await fetch(base + '/data/item_names/' + pairs[0].locale + '.pbf', { credentials: 'include' });
+        if (nmRes.ok) namesB64 = b64(await nmRes.arrayBuffer());
+      } catch { /* opcional */ }
+    }
 
     return { itemsByPair, namesB64 };
-  }, { base, pairs });
+  }, { base, pairs, fetchNames });
 }
 
 // ── Casar una regla requerida contra un attr/apply ───────────────────────────
@@ -300,15 +319,31 @@ async function getWebshareProxies(token) {
     const m = u.trim().match(/^https?:\/\/(?:([^:@]+):([^@]+)@)?([^:/]+):(\d+)$/);
     return m ? { server: `http://${m[3]}:${m[4]}`, username: m[1] || undefined, password: m[2] || undefined } : null;
   };
-  // 1º intenta la API de Webshare (auto-actualizada); si no, usa el secret PROXIES.
-  let proxyList = [];
-  if (process.env.WEBSHARE_TOKEN) proxyList = await getWebshareProxies(process.env.WEBSHARE_TOKEN);
-  if (!proxyList.length) proxyList = (process.env.PROXIES || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean).map(parseProxy).filter(Boolean);
-  console.log(`proxies disponibles: ${proxyList.length}`);
-  // Orden ALEATORIO en cada ejecución → reparte la carga entre todos los proxies
-  // (cada IP se usa menos → menos riesgo de que la marquen) y da resiliencia si uno cae.
   const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
-  const candidates = proxyList.length ? shuffle(proxyList) : [null]; // [null] = directo (fallará en GitHub)
+  const parseList = env => (process.env[env] || '').split(/[\n,]+/).map(s => s.trim()).filter(Boolean).map(parseProxy).filter(Boolean);
+
+  // ── Pool de proxies por CAPAS (gratis primero, reserva de pago al final) ─────
+  // GRATIS: WEBSHARE_TOKEN admite VARIOS tokens separados por coma (varias cuentas free →
+  // se suma el ancho de banda; si una da 402 se salta a la siguiente). + secret PROXIES.
+  let freeProxies = [];
+  for (const tok of (process.env.WEBSHARE_TOKEN || '').split(',').map(s => s.trim()).filter(Boolean)) {
+    freeProxies = freeProxies.concat(await getWebshareProxies(tok));
+  }
+  freeProxies = freeProxies.concat(parseList('PROXIES'));
+  // RESERVA (de pago, ej. IPRoyal/Bright Data): SOLO se usa si todas las gratis fallan.
+  const reserveProxies = parseList('PROXIES_RESERVE');
+  const candidates = (freeProxies.length || reserveProxies.length)
+    ? [...shuffle(freeProxies), ...reserveProxies]   // gratis barajadas → reserva al final
+    : [null];                                        // sin proxies → intento directo
+  const proxyTotal = freeProxies.length + reserveProxies.length;
+  console.log(`proxies: ${freeProxies.length} gratis + ${reserveProxies.length} reserva`);
+
+  // ── Nombres cacheados ~30 días (prácticamente estáticos) → ahorra ~850 KB/run ─
+  let names = {}, fetchNames = true;
+  try {
+    const nc = JSON.parse(fs.readFileSync(NAMES_CACHE, 'utf8'));
+    if (nc && nc.names && (Date.now() - (nc.ts || 0)) < 30 * 24 * 3600 * 1000) { names = nc.names; fetchNames = false; }
+  } catch { /* sin caché → se descargan una vez */ }
 
   const spoofScript = () => {
     const s = { 37445: 'Intel Inc.', 37446: 'Intel(R) Iris(R) Xe Graphics' };
@@ -321,7 +356,7 @@ async function getWebshareProxies(token) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   };
 
-  let itemsByPair = {}, names = {};
+  let itemsByPair = {};
   const attempts = [];  // proxies probados y su resultado (para el aviso de Telegram)
   for (const proxy of candidates) {
     const label = proxy ? proxy.server : 'directo';
@@ -334,14 +369,15 @@ async function getWebshareProxies(token) {
       const context = await browser.newContext({ locale: 'es-ES', viewport: { width: 1280, height: 720 } });
       await context.addInitScript(spoofScript);
       const page = await context.newPage();
+      await applyAdblock(page);   // corta imágenes/ads/analytics → menos ancho de banda, sin parecer bot
       await page.goto(BASE + '/' + LOCALE, { waitUntil: 'domcontentloaded', timeout: 90000 });
       await page.waitForTimeout(8000);
-      const res = await fetchInPage(page, BASE, pairs);
+      const res = await fetchInPage(page, BASE, pairs, fetchNames);
       const decoded = {}; let tot = 0;
       for (const [k, b64] of Object.entries(res.itemsByPair)) { decoded[k] = b64 ? decodeItemList(Buffer.from(b64, 'base64')) : []; tot += decoded[k].length; }
       if (tot > 0) {
         itemsByPair = decoded;
-        if (res.namesB64) { try { names = decodeNames(Buffer.from(res.namesB64, 'base64')); } catch { names = {}; } }
+        if (fetchNames && res.namesB64) { try { names = decodeNames(Buffer.from(res.namesB64, 'base64')); saveNamesCache(names); } catch { } }
         attempts.push({ ip: label, r: `OK (${tot} items)` });
         console.log(`✓ proxy OK: ${label}`);
         await browser.close();
@@ -363,17 +399,19 @@ async function getWebshareProxies(token) {
   // ── Vigilante: cuenta fallos seguidos (health.json) y avisa por Telegram ────
   const health = readHealth();
   const nowUTC = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  const runTs = Date.now();   // marca de esta ejecución real → la usa gate.mjs para el throttle
   if (totalItems === 0) {
     console.error('❌ 0 items — todos los proxies fallaron o están bloqueados');
     health.fails = (health.fails || 0) + 1;
     health.lastFail = nowUTC;
+    health.lastScrapeTs = runTs;
     // Avisa al 2º fallo seguido, y luego cada 24 (~6 h a 15 min) mientras siga caído (sin spam)
     if (health.fails === 2 || (health.fails > 2 && health.fails % 24 === 0)) {
       const lines = attempts.length ? attempts.map(a => `   • ${a.ip} → ${a.r}`).join('\n') : '   • (sin proxies configurados)';
       await sendTelegram(
         `🔴 <b>SCRAPER CAÍDO</b> · ${health.fails} fallos seguidos\n\n` +
         `🕒 <b>Hora:</b> ${nowUTC}\n` +
-        `📊 <b>Proxies disponibles:</b> ${proxyList.length}\n` +
+        `📊 <b>Proxies disponibles:</b> ${proxyTotal}\n` +
         `🌐 <b>Intentos (IP → resultado):</b>\n${lines}\n\n` +
         `ℹ️ 0 items en todas las categorías → probable bloqueo de las IPs de los proxies (o cambio en la web).`
       );
@@ -385,7 +423,7 @@ async function getWebshareProxies(token) {
   if ((health.fails || 0) >= 2) {
     await sendTelegram(`🟢 <b>SCRAPER RECUPERADO</b>\n🕒 ${nowUTC}\nTras ${health.fails} fallos seguidos, vuelve a funcionar.`);
   }
-  writeHealth({ fails: 0, lastOk: nowUTC });
+  writeHealth({ fails: 0, lastOk: nowUTC, lastScrapeTs: runTs });
 
   // Filtrar cada búsqueda contra su par
   const matches = [];
